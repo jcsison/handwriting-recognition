@@ -1,0 +1,9 @@
+*.data
+*.ini
+*.mat
+*.png
+*.zip
+
+etc/
+input/
+model/
