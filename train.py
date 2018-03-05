@@ -1,16 +1,17 @@
 import os
 import warnings
+
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 warnings.simplefilter('ignore')
+
+import keras
+import numpy as np
+import pickle
 
 from keras.layers import Conv3D, MaxPooling2D, Convolution2D, Dropout, Dense, Flatten, LSTM
 from keras.models import Sequential, save_model
 from keras.utils import np_utils
 from scipy.io import loadmat
-
-import keras
-import numpy as np
-import pickle
 
 def load_data(mat_file_path, width=28, height=28):
     def rotate(img):
@@ -93,6 +94,6 @@ def train(model, training_data, batch_size=256, epochs=10):
     save_model(model, 'model/model.h5')
 
 if __name__ == '__main__':
-    training_data = load_data('data/emnist-balanced.mat')
+    training_data = load_data('data/emnist-byclass.mat')
     model = build_net(training_data)
     train(model, training_data)

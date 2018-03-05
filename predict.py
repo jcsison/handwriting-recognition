@@ -1,18 +1,17 @@
 import os
 import warnings
+
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 warnings.simplefilter('ignore')
-
-from keras.models import model_from_yaml
-from scipy.misc import imread, imresize
-
-from collections import Counter
-from matplotlib import pyplot as plt
 
 import argparse
 import cv2
 import numpy as np
 import pickle
+
+from matplotlib import pyplot as plt
+from keras.models import model_from_yaml
+from scipy.misc import imread, imresize
 
 def load_model():
     yaml_file = open('model/model.yaml', 'r')
