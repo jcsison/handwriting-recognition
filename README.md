@@ -33,6 +33,6 @@ python3 predict.py -f [file_path]
 - Improve prediction accuracy (should improve after switching to byclass)
 - Tweak CNN training model (still learning how Keras models work)
 - Train using other learning algorithms
--- SVM
--- Random forest
+    - SVM
+    - Random forest
 - Image process strings of letters (if time permits)
