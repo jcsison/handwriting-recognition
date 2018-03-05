@@ -6,9 +6,11 @@ warnings.simplefilter('ignore')
 from keras.models import model_from_yaml
 from scipy.misc import imread, imresize
 
+from collections import Counter
 from matplotlib import pyplot as plt
 
 import argparse
+import cv2
 import numpy as np
 import pickle
 
@@ -22,18 +24,27 @@ def load_model():
     return model
 
 def predict(file_path, mapping):
-    def crop(img, crop):
-        y, x = img.shape
-        x_c = (x // 2) - (crop // 2)
-        y_c = (y // 2) - (crop // 2)
-        return img[y_c:y_c + crop, x_c:x_c + crop]
+    def square(img, color):
+        (x, y) = img.shape
+        if x > y:
+            padding = ((0, 0), ((x - y) // 2, (x - y) // 2))
+        else:
+            padding = (((y - x) // 2, (y - x) // 2), (0, 0))
+        return np.pad(img, padding, mode='constant', constant_values=color)
+
+    def background_color(img):
+        (values, counts) = np.unique(img, return_counts=True)
+        return values[np.argmax(counts)]
 
     img = imread(file_path, mode='L')
-    # img = crop(img, min(img.shape[0], img.shape[1]))
-    img = np.invert(img)
+    ret, img = cv2.threshold(img, 127, 255, cv2.THRESH_BINARY)
+    color = background_color(img)
+    img = square(img, color)
+    if color != 0:
+        img = np.invert(img)
     img = imresize(img, (28, 28))
-    # plt.imshow(img)
-    # plt.show()
+    plt.imshow(img)
+    plt.show()
     img = img.reshape(1, 28, 28, 1)
     img = img.astype('float32') / 255
 
