@@ -4,6 +4,7 @@ import warnings
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 warnings.simplefilter('ignore')
 
+import argparse
 import keras
 import numpy as np
 import pickle
@@ -12,18 +13,21 @@ from keras.layers import Conv3D, MaxPooling2D, Convolution2D, Dropout, Dense, Fl
 from keras.models import Sequential, save_model
 from keras.utils import np_utils
 from scipy.io import loadmat
+from tensorflow.python.lib.io import file_io
 
-def load_data(mat_file_path, width=28, height=28):
+def load_data(mat_file_path, job_path, width=28, height=28):
     def rotate(img):
         flipped = np.fliplr(img)
         return np.rot90(flipped)
 
-    if not os.path.exists('model/'):
-        os.makedirs('model/')
+    if not os.path.exists(job_path):
+        os.makedirs(job_path)
 
-    mat = loadmat(mat_file_path)
+    file_stream = file_io.FileIO(mat_file_path, mode='r')
+    mat = loadmat(file_stream)
     mapping = {kv[0]:kv[1:][0] for kv in mat['dataset'][0][0][2]}
-    pickle.dump(mapping, open('model/mapping.p', 'wb'))
+    with file_io.FileIO(job_path + '/mapping.p', mode='w') as output_f:
+        pickle.dump(mapping, output_f)
 
     size = len(mat['dataset'][0][0][0][0][0][0])
     training_images = mat['dataset'][0][0][0][0][0][0].reshape(size, height, width, 1)
@@ -35,9 +39,7 @@ def load_data(mat_file_path, width=28, height=28):
 
     length = len(testing_images)
     for i in range(len(testing_images)):
-        print('%d/%d (%.2lf%%)' % (i + 1, length, ((i + 1) / length) * 100), end='\r')
         testing_images[i] = rotate(testing_images[i])
-    print()
 
     training_images = training_images.astype('float32') / 255
     testing_images = testing_images.astype('float32') / 255
@@ -70,13 +72,13 @@ def build_net(training_data, width=28, height=28):
 
     return model
 
-def train(model, training_data, batch_size=256, epochs=10):
+def train(job_path, model, training_data, batch_size=256, epochs=10):
     (x_train, y_train), (x_test, y_test), mapping, nb_classes = training_data
 
     y_train = np_utils.to_categorical(y_train, nb_classes)
     y_test = np_utils.to_categorical(y_test, nb_classes)
 
-    tb_callback = keras.callbacks.TensorBoard(log_dir='./model/Graph',
+    tb_callback = keras.callbacks.TensorBoard(log_dir=os.path.join(job_path, 'Graph/'),
         histogram_freq=0, write_graph=True, write_images=True)
 
     model.fit(x_train, y_train, batch_size=batch_size, epochs=epochs, verbose=1,
@@ -87,13 +89,21 @@ def train(model, training_data, batch_size=256, epochs=10):
     print('Test accuracy:', score[1])
 
     model_yaml = model.to_yaml()
-    with open('model/model.yaml', 'w') as yaml_file:
-        yaml_file.write(model_yaml)
-    save_model(model, 'model/model.h5')
+    with file_io.FileIO(job_path + '/model.yaml', mode='w') as output_f:
+        output_f.write(model_yaml)
+    model.save('model.h5')
+    with file_io.FileIO('model.h5', mode='r') as input_f:
+        with file_io.FileIO(job_path + '/model.h5', mode='w+') as output_f:
+            output_f.write(input_f.read())
 
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser(usage='python3 train_gcloud.py -t [file path] -j [job directory]')
+    parser.add_argument('-t', '--train-file', type=str, help='Training dataset file path',
+        dest='train', required=True)
+    parser.add_argument('-j', '--job-dir', type=str, help='Job directory', dest='job', required=True)
+    args = parser.parse_args()
+
     np.random.seed(10)
-    training_data = load_data('data/emnist-byclass.mat')
-    # training_data = load_data('data/emnist-balanced.mat')
+    training_data = load_data(args.train, args.job)
     model = build_net(training_data)
-    train(model, training_data)
+    train(args.job, model, training_data)

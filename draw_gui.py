@@ -16,28 +16,15 @@ from keras.models import model_from_yaml
 from scipy.misc import imresize
 
 def init_gui(model, mapping, width=400, height=400):
-    def exit():
-        frame.destroy()
-
-    def paint(event, pen_size=10):
-    	x1, y1 = (event.x - pen_size), (event.y - pen_size)
-    	x2, y2 = (event.x + pen_size), (event.y + pen_size)
-    	window.create_oval(x1, y1, x2, y2, fill='black', outline='black')
-    	draw.ellipse([x1, y1, x2, y2], (0, 0, 0), outline=(0, 0, 0))
-
-    def clear():
-        image.paste(Image.new('RGB', (width, height), (255, 255, 255)))
-        window.delete('all')
-        label1_var.set('Prediction: ')
-        label2_var.set('Confidence: ')
-
-    def predict():
-        def crop(img, color=0):
+    def process_image(image):
+        def crop(img, color=0, padding=2):
             mask = img != color
+            if True not in mask:
+                return img
             coords = np.argwhere(mask)
             x0, y0 = coords.min(axis=0)
             x1, y1 = coords.max(axis=0) + 1
-            return img[x0:x1, y0:y1]
+            return img[x0 - padding:x1 + padding, y0 - padding:y1 + padding]
 
         def square(img, color=0):
             (x, y) = img.shape
@@ -51,25 +38,56 @@ def init_gui(model, mapping, width=400, height=400):
         img_c = ImageOps.invert(img_c)
         w, h = img_c.size
         w, h = w // 2, h // 2
-
         x, y = ndimage.measurements.center_of_mass(np.asarray(img_c))
         img_t = img_c.transform(img_c.size, Image.AFFINE, (1, 0, y - h, 0, 1, x - w), fill=0)
         img_t = np.asarray(img_t.convert('L'))
-
         ret, img = cv2.threshold(img_t, 127, 255, cv2.THRESH_BINARY)
+        img = cv2.GaussianBlur(img, (1, 1), 0)
         img = crop(img)
         img = square(img)
+        return img
+
+    def exit():
+        frame.destroy()
+
+    def paint(event, pen_size=10):
+        x1, y1 = (event.x - pen_size), (event.y - pen_size)
+        x2, y2 = (event.x + pen_size), (event.y + pen_size)
+        window.create_oval(x1, y1, x2, y2, fill='black', outline='black')
+        draw.ellipse([x1, y1, x2, y2], (0, 0, 0), outline=(0, 0, 0))
+
+    def predict():
+        img = process_image(image)
         img = imresize(img, (28, 28))
-        plt.imshow(img)
+        img = ndimage.rotate(img, 90)
+        img = cv2.flip(img, 0)
         img = img.reshape(1, 28, 28, 1)
         img = img.astype('float32') / 255
-
         out = model.predict(img)
         prediction = chr(mapping[(int(np.argmax(out, axis=1)[0]))])
         confidence = max(out[0]) * 100
         label1_var.set('Prediction: ' + prediction)
         label2_var.set('Confidence: {0:.1f}'.format(confidence))
+
+    def show():
+        img = process_image(image)
+        plt.imshow(img)
         plt.show()
+
+    def save():
+        img = process_image(image)
+        img = Image.fromarray(img)
+        img = ImageOps.invert(img)
+        filename = tk.filedialog.asksaveasfilename(initialdir='.', title='Select file',
+            filetypes=(('png files', '*.png'), ('all files', '*.*')))
+        if filename != '' and filename != ():
+            img.save(filename)
+
+    def clear():
+        image.paste(Image.new('RGB', (width, height), (255, 255, 255)))
+        window.delete('all')
+        label1_var.set('Prediction: ')
+        label2_var.set('Confidence: ')
 
     frame = tk.Tk()
     frame.title('Draw Handwritten Character')
@@ -79,6 +97,8 @@ def init_gui(model, mapping, width=400, height=400):
 
     window = tk.Canvas(frame, width=width, height=height + 20)
     button_predict = tk.Button(frame, text='Predict', command=predict)
+    button_show = tk.Button(frame, text='Show', command=show)
+    button_save = tk.Button(frame, text='Save', command=save)
     button_clear = tk.Button(frame, text='Clear', command=clear)
 
     label1_var = tk.StringVar()
@@ -88,14 +108,15 @@ def init_gui(model, mapping, width=400, height=400):
     label2_var.set('Confidence: ')
     label2 = tk.Label(frame, textvariable=label2_var)
 
-
     window.bind('<B1-Motion>', paint)
     window.configure(background='white')
     window.pack(expand=True, fill='both')
     label1.pack(expand=True)
     label2.pack(expand=True)
     button_predict.pack(expand=True, fill='x', side='left')
-    button_clear.pack(expand=True, fill='x', side='right')
+    button_show.pack(expand=True, fill='x', side='left')
+    button_save.pack(expand=True, fill='x', side='left')
+    button_clear.pack(expand=True, fill='x', side='left')
 
     frame.protocol('WM_DELETE_WINDOW', exit)
     frame.mainloop()

@@ -7,3 +7,4 @@
 etc/
 input/
 model/
+trainer/__pycache__/
