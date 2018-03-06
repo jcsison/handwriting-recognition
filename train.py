@@ -30,15 +30,13 @@ def load_data(mat_file_path, width=28, height=28):
     training_labels = mat['dataset'][0][0][0][0][0][1]
 
     size = len(mat['dataset'][0][0][1][0][0][0])
-    testing_images = mat['dataset'][0][0][1][0][0][0][:size].reshape(size, height, width, 1)
-    testing_labels = mat['dataset'][0][0][1][0][0][1][:size]
+    testing_images = mat['dataset'][0][0][1][0][0][0].reshape(size, height, width, 1)
+    testing_labels = mat['dataset'][0][0][1][0][0][1]
 
     length = len(testing_images)
-
     for i in range(len(testing_images)):
         print('%d/%d (%.2lf%%)' % (i + 1, length, ((i + 1) / length) * 100), end='\r')
         testing_images[i] = rotate(testing_images[i])
-
     print()
 
     training_images = training_images.astype('float32') / 255
@@ -94,6 +92,8 @@ def train(model, training_data, batch_size=256, epochs=10):
     save_model(model, 'model/model.h5')
 
 if __name__ == '__main__':
-    training_data = load_data('data/emnist-byclass.mat')
+    np.random.seed(10)
+    # training_data = load_data('data/emnist-byclass.mat')
+    training_data = load_data('data/emnist-balanced.mat')
     model = build_net(training_data)
     train(model, training_data)

@@ -23,7 +23,18 @@ def load_model():
     return model
 
 def predict(file_path, mapping):
-    def square(img, color):
+    def background_color(img):
+        (values, counts) = np.unique(img, return_counts=True)
+        return values[np.argmax(counts)]
+
+    def crop(img, color=0):
+        mask = img != color
+        coords = np.argwhere(mask)
+        x0, y0 = coords.min(axis=0)
+        x1, y1 = coords.max(axis=0) + 1
+        return img[x0:x1, y0:y1]
+
+    def square(img, color=0):
         (x, y) = img.shape
         if x > y:
             padding = ((0, 0), ((x - y) // 2, (x - y) // 2))
@@ -31,16 +42,12 @@ def predict(file_path, mapping):
             padding = (((y - x) // 2, (y - x) // 2), (0, 0))
         return np.pad(img, padding, mode='constant', constant_values=color)
 
-    def background_color(img):
-        (values, counts) = np.unique(img, return_counts=True)
-        return values[np.argmax(counts)]
-
     img = imread(file_path, mode='L')
     ret, img = cv2.threshold(img, 127, 255, cv2.THRESH_BINARY)
-    color = background_color(img)
-    img = square(img, color)
-    if color != 0:
+    if background_color(img) != 0:
         img = np.invert(img)
+    img = crop(img)
+    img = square(img)
     img = imresize(img, (28, 28))
     plt.imshow(img)
     plt.show()

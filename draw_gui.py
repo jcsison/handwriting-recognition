@@ -10,7 +10,8 @@ import pickle
 import tkinter as tk
 
 from matplotlib import pyplot as plt
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageOps
+from scipy import ndimage
 from keras.models import model_from_yaml
 from scipy.misc import imresize
 
@@ -31,13 +32,35 @@ def init_gui(model, mapping, width=400, height=400):
         label2_var.set('Confidence: ')
 
     def predict():
-        img = image.crop(image.getbbox())
-        img = np.asarray(img.convert('L'))
-        ret, img = cv2.threshold(img, 127, 255, cv2.THRESH_BINARY)
-        img = np.invert(img)
+        def crop(img, color=0):
+            mask = img != color
+            coords = np.argwhere(mask)
+            x0, y0 = coords.min(axis=0)
+            x1, y1 = coords.max(axis=0) + 1
+            return img[x0:x1, y0:y1]
+
+        def square(img, color=0):
+            (x, y) = img.shape
+            if x > y:
+                padding = ((0, 0), ((x - y) // 2, (x - y) // 2))
+            else:
+                padding = (((y - x) // 2, (y - x) // 2), (0, 0))
+            return np.pad(img, padding, mode='constant', constant_values=color)
+
+        img_c = image.crop(image.getbbox()).convert('L')
+        img_c = ImageOps.invert(img_c)
+        w, h = img_c.size
+        w, h = w // 2, h // 2
+
+        x, y = ndimage.measurements.center_of_mass(np.asarray(img_c))
+        img_t = img_c.transform(img_c.size, Image.AFFINE, (1, 0, y - h, 0, 1, x - w), fill=0)
+        img_t = np.asarray(img_t.convert('L'))
+
+        ret, img = cv2.threshold(img_t, 127, 255, cv2.THRESH_BINARY)
+        img = crop(img)
+        img = square(img)
         img = imresize(img, (28, 28))
         plt.imshow(img)
-        plt.show()
         img = img.reshape(1, 28, 28, 1)
         img = img.astype('float32') / 255
 
@@ -46,6 +69,7 @@ def init_gui(model, mapping, width=400, height=400):
         confidence = max(out[0]) * 100
         label1_var.set('Prediction: ' + prediction)
         label2_var.set('Confidence: {0:.1f}'.format(confidence))
+        plt.show()
 
     frame = tk.Tk()
     frame.title('Draw Handwritten Character')
