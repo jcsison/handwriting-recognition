@@ -4,7 +4,6 @@ import warnings
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 warnings.simplefilter('ignore')
 
-import argparse
 import cv2
 import numpy as np
 import pickle
@@ -13,9 +12,9 @@ import tkinter as tk
 from matplotlib import pyplot as plt
 from PIL import Image, ImageDraw
 from keras.models import model_from_yaml
-from scipy.misc import imread, imresize
+from scipy.misc import imresize
 
-def init_gui(model, width=400, height=400):
+def init_gui(model, mapping, width=400, height=400):
     def exit():
         frame.destroy()
 
@@ -26,16 +25,30 @@ def init_gui(model, width=400, height=400):
     	draw.ellipse([x1, y1, x2, y2], (0, 0, 0), outline=(0, 0, 0))
 
     def clear():
+        image.paste(Image.new('RGB', (width, height), (255, 255, 255)))
         window.delete('all')
+        label1_var.set('Prediction: ')
+        label2_var.set('Confidence: ')
 
     def predict():
-        image1 = image.crop(image.getbbox())
-        plt.imshow(image1)
+        img = image.crop(image.getbbox())
+        img = np.asarray(img.convert('L'))
+        ret, img = cv2.threshold(img, 127, 255, cv2.THRESH_BINARY)
+        img = np.invert(img)
+        img = imresize(img, (28, 28))
+        plt.imshow(img)
         plt.show()
-        label.configure(text='Prediction: A')
+        img = img.reshape(1, 28, 28, 1)
+        img = img.astype('float32') / 255
+
+        out = model.predict(img)
+        prediction = chr(mapping[(int(np.argmax(out, axis=1)[0]))])
+        confidence = max(out[0]) * 100
+        label1_var.set('Prediction: ' + prediction)
+        label2_var.set('Confidence: {0:.1f}'.format(confidence))
 
     frame = tk.Tk()
-    frame.title('Draw Character')
+    frame.title('Draw Handwritten Character')
 
     image = Image.new('RGB', (width, height), (255, 255, 255))
     draw = ImageDraw.Draw(image)
@@ -43,12 +56,20 @@ def init_gui(model, width=400, height=400):
     window = tk.Canvas(frame, width=width, height=height + 20)
     button_predict = tk.Button(frame, text='Predict', command=predict)
     button_clear = tk.Button(frame, text='Clear', command=clear)
-    label = tk.Label(frame, text='Prediction: ')
+
+    label1_var = tk.StringVar()
+    label1_var.set('Prediction: ')
+    label1 = tk.Label(frame, textvariable=label1_var)
+    label2_var = tk.StringVar()
+    label2_var.set('Confidence: ')
+    label2 = tk.Label(frame, textvariable=label2_var)
+
 
     window.bind('<B1-Motion>', paint)
     window.configure(background='white')
     window.pack(expand=True, fill='both')
-    label.pack(expand=True)
+    label1.pack(expand=True)
+    label2.pack(expand=True)
     button_predict.pack(expand=True, fill='x', side='left')
     button_clear.pack(expand=True, fill='x', side='right')
 
@@ -66,4 +87,5 @@ def load_model():
 
 if __name__ == '__main__':
     model = load_model()
-    init_gui(model)
+    mapping = pickle.load(open('model/mapping.p', 'rb'))
+    init_gui(model, mapping)
