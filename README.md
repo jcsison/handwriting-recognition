@@ -18,7 +18,7 @@ Run the training script using:
 python3 train.py
 ```
 
-A model h5 and YAML file will be generated within the `model/` directory
+A model h5 and YAML file will be generated within the `model/` directory.
 
 ### Prediction
 Once the model has been created, a single handwritten character can be predicted by running:
@@ -27,10 +27,17 @@ Once the model has been created, a single handwritten character can be predicted
 python3 predict.py -f [file_path]
 ```
 
+### Prediction GUI
+A Tkinter GUI has been created to test the model implementation more easily. This can be ran through the command:
+
+``` bash
+python3 draw_gui.py
+```
+
 ### To-do
-- GUI testing environment for live demo
-- Train on byclass dataset (currently using balanced)
-- Improve prediction accuracy (should improve after switching to byclass)
+- ~~GUI testing environment for live demo~~
+- ~~Train on byclass dataset (currently using balanced)~~
+- ~~Improve prediction accuracy (should improve after switching to byclass)~~
 - Tweak CNN training model (still learning how Keras models work)
 - Train using other learning algorithms
     - SVM
