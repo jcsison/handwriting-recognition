@@ -17,15 +17,16 @@ from scipy.misc import imresize
 
 def init_gui(model, mapping, width=400, height=400):
     def process_image(image):
-        def crop(img, color=0, padding=2):
+        def crop(img, color=0):
+            padding = max(img.shape) // 40
             mask = img != color
             if True not in mask:
                 return img
             coords = np.argwhere(mask)
-            x0, y0 = coords.min(axis=0) - padding
-            x1, y1 = coords.max(axis=0) + 1 + padding
-            x0, y0 = x0 * (x0 > 0), y0 * (y0 > 0)
-            x1, y1 = x1 * (x1 > 0), y1 * (y1 > 0)
+            x0, y0 = coords.min(axis=0)
+            x1, y1 = coords.max(axis=0) + 1
+            x0, y0 = x0 * (x0 > 0) - padding, y0 * (y0 > 0) - padding
+            x1, y1 = x1 * (x1 > 0) + padding, y1 * (y1 > 0) + padding
             return img[x0:x1, y0:y1]
 
         def square(img, color=0):
@@ -39,9 +40,8 @@ def init_gui(model, mapping, width=400, height=400):
         img_c = image.crop(image.getbbox()).convert('L')
         img = ImageOps.invert(img_c)
         img = np.asarray(img)
-        ret, img = cv2.threshold(img, 127, 255, cv2.THRESH_BINARY)
         img = cv2.GaussianBlur(img, (5, 5), 0)
-        ret, img = cv2.threshold(img, 20, 255, cv2.THRESH_BINARY)
+        ret, img = cv2.threshold(img, 0, 255, cv2.THRESH_BINARY+cv2.THRESH_OTSU)
         img = crop(img)
         img = square(img)
         return img
@@ -71,7 +71,8 @@ def init_gui(model, mapping, width=400, height=400):
     def show():
         img = process_image(image)
         img = imresize(img, (28, 28))
-        plt.imshow(img)
+        plt.imshow(img, cmap='gray')
+        plt.xticks([]), plt.yticks([])
         plt.show()
 
     def save():

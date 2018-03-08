@@ -10,7 +10,7 @@ Implementation of handwriting recognition using machine learning.
 
 ## Instructions
 ### Training
-Before training, ensure that `emnist-balanced.mat` from the [EMNIST dataset](https://cloudstor.aarnet.edu.au/plus/index.php/s/7YXcasTXp727EqB/download) is stored within the `data/` directory.
+Before training, ensure that `emnist-byclass.mat` from the [EMNIST dataset](https://cloudstor.aarnet.edu.au/plus/index.php/s/7YXcasTXp727EqB/download) is stored within the `data/` directory.
 
 Run the training script using:
 
@@ -21,7 +21,7 @@ python3 train.py
 A model h5, YAML, and Pickle file will be generated within the `model/` directory.
 
 ### Prediction
-Once the model has been created, a single handwritten character can be predicted by running:
+Once the model has been created, a handwritten character images can be predicted by running:
 
 ``` bash
 python3 predict.py [file1] ...
@@ -29,8 +29,8 @@ python3 predict.py [file1] ...
 
 Note: multiple files can be predicted in one instance and a wildcard `*` can be used to process all files within a directory.
 
-### Prediction GUI
-A Tkinter GUI has been created to test the model implementation more easily. This can be started with the command:
+### Drawing Prediction GUI
+A Tkinter GUI with a drawing canvas has been created to test the model implementation more easily. This can be started with the command:
 
 ``` bash
 python3 draw_gui.py
@@ -41,7 +41,7 @@ python3 draw_gui.py
 - ~~Train on byclass dataset (currently using balanced)~~
 - ~~Improve prediction accuracy (should improve after switching to byclass)~~
 - Compare byclass with other EMNIST datasets
-- Improve image processing
+- Improve image preprocessing
 - Train using other learning algorithms (if time permits)
     - SVM
     - Random forest

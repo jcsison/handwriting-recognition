@@ -28,12 +28,10 @@ def predict(file_path, mapping):
     def show_compare(image1, image2):
         plt.subplot(121)
         plt.imshow(image1, cmap='gray')
-        plt.xticks([])
-        plt.yticks([])
+        plt.xticks([]), plt.yticks([])
         plt.subplot(122)
-        plt.imshow(image2)
-        plt.xticks([])
-        plt.yticks([])
+        plt.imshow(image2, cmap='gray')
+        plt.xticks([]), plt.yticks([])
         plt.show()
 
     def process_image(image):
@@ -41,15 +39,20 @@ def predict(file_path, mapping):
             (values, counts) = np.unique(img, return_counts=True)
             return values[np.argmax(counts)]
 
-        def crop(img, color=0, padding=2):
+        def crop(img, color=0):
+            padding = max(img.shape) // 40
             mask = img != color
             if True not in mask:
                 return img
             coords = np.argwhere(mask)
-            x0, y0 = coords.min(axis=0) - padding
-            x1, y1 = coords.max(axis=0) + 1 + padding
-            x0, y0 = x0 * (x0 > 0), y0 * (y0 > 0)
-            x1, y1 = x1 * (x1 > 0), y1 * (y1 > 0)
+            x0, y0 = coords.min(axis=0)
+            x1, y1 = coords.max(axis=0) + 1
+            x0, y0 = x0 * (x0 > 0) - padding, y0 * (y0 > 0) - padding
+            x1, y1 = x1 * (x1 > 0) + padding, y1 * (y1 > 0) + padding
+            if x0 < 0:
+                x0 = 0
+            if y0 < 0:
+                y0 = 0
             return img[x0:x1, y0:y1]
 
         def square(img, color=0):
@@ -61,11 +64,9 @@ def predict(file_path, mapping):
             return np.pad(img, padding, mode='constant', constant_values=color)
 
         img = image.crop(image.getbbox()).convert('L')
-        img = ImageOps.invert(img)
         img = np.asarray(img)
-        ret, img = cv2.threshold(img, 127, 255, cv2.THRESH_BINARY)
         img = cv2.GaussianBlur(img, (5, 5), 0)
-        ret, img = cv2.threshold(img, 20, 255, cv2.THRESH_BINARY)
+        ret, img = cv2.threshold(img, 0, 255, cv2.THRESH_BINARY+cv2.THRESH_OTSU)
         if background_color(img) != 0:
             img = np.invert(img)
         img = crop(img)
@@ -73,8 +74,9 @@ def predict(file_path, mapping):
         img_ref = img
         return img, img_ref
 
-    image = imread(file_path, mode='L')
-    img, img_ref = process_image(Image.fromarray(image))
+    image = imread(file_path)
+    img = imread(file_path, mode='L')
+    img, img_ref = process_image(Image.fromarray(img))
     img = imresize(img, (28, 28))
     img = ndimage.rotate(img, 90)
     img = cv2.flip(img, 0)
