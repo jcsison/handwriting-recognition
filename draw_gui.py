@@ -27,6 +27,8 @@ def init_gui(model, mapping, width=400, height=400):
             x1, y1 = coords.max(axis=0) + 1
             x0, y0 = x0 * (x0 > 0) - padding, y0 * (y0 > 0) - padding
             x1, y1 = x1 * (x1 > 0) + padding, y1 * (y1 > 0) + padding
+            x0 = max(0, x0)
+            y0 = max(0, y0)
             return img[x0:x1, y0:y1]
 
         def square(img, color=0):
@@ -40,7 +42,9 @@ def init_gui(model, mapping, width=400, height=400):
         img_c = image.crop(image.getbbox()).convert('L')
         img = ImageOps.invert(img_c)
         img = np.asarray(img)
+        img = cv2.medianBlur(img, 5)
         img = cv2.GaussianBlur(img, (5, 5), 0)
+        img = cv2.bilateralFilter(img, 9, 75, 75)
         ret, img = cv2.threshold(img, 0, 255, cv2.THRESH_BINARY+cv2.THRESH_OTSU)
         img = crop(img)
         img = square(img)
