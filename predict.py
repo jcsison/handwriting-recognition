@@ -1,10 +1,10 @@
 import os
+import sys
 import warnings
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 warnings.simplefilter('ignore')
 
-import argparse
 import cv2
 import numpy as np
 import pickle
@@ -25,6 +25,17 @@ def load_model():
     return model
 
 def predict(file_path, mapping):
+    def show_compare(image1, image2):
+        plt.subplot(121)
+        plt.imshow(image1, cmap='gray')
+        plt.xticks([])
+        plt.yticks([])
+        plt.subplot(122)
+        plt.imshow(image2)
+        plt.xticks([])
+        plt.yticks([])
+        plt.show()
+
     def process_image(image):
         def background_color(img):
             (values, counts) = np.unique(img, return_counts=True)
@@ -49,23 +60,21 @@ def predict(file_path, mapping):
                 padding = (((y - x) // 2, (y - x) // 2), (0, 0))
             return np.pad(img, padding, mode='constant', constant_values=color)
 
-        img_c = image.crop(image.getbbox()).convert('L')
-        img_c = ImageOps.invert(img_c)
-        w, h = img_c.size
-        w, h = w // 2, h // 2
-        x, y = ndimage.measurements.center_of_mass(np.asarray(img_c))
-        img_t = img_c.transform(img_c.size, Image.AFFINE, (1, 0, y - h, 0, 1, x - w), fill=0)
-        img_t = np.asarray(img_t.convert('L'))
-        ret, img = cv2.threshold(img_t, 127, 255, cv2.THRESH_BINARY)
+        img = image.crop(image.getbbox()).convert('L')
+        img = ImageOps.invert(img)
+        img = np.asarray(img)
+        ret, img = cv2.threshold(img, 127, 255, cv2.THRESH_BINARY)
+        img = cv2.GaussianBlur(img, (5, 5), 0)
+        ret, img = cv2.threshold(img, 20, 255, cv2.THRESH_BINARY)
         if background_color(img) != 0:
             img = np.invert(img)
-        img = cv2.GaussianBlur(img, (1, 1), 0)
         img = crop(img)
         img = square(img)
-        return img
+        img_ref = img
+        return img, img_ref
 
-    img = imread(file_path, mode='L')
-    img = process_image(Image.fromarray(img))
+    image = imread(file_path, mode='L')
+    img, img_ref = process_image(Image.fromarray(image))
     img = imresize(img, (28, 28))
     img = ndimage.rotate(img, 90)
     img = cv2.flip(img, 0)
@@ -74,12 +83,14 @@ def predict(file_path, mapping):
     out = model.predict(img)
     print('Prediction:', chr(mapping[(int(np.argmax(out, axis=1)[0]))]))
     print('Confidence:', str(max(out[0]) * 100)[:6])
+    show_compare(image, img_ref)
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(usage='python3 predict.py -f [file_path]')
-    parser.add_argument('-f', '--file', type=str, help='Image file path', required=True)
-    args = parser.parse_args()
-
     model = load_model()
     mapping = pickle.load(open('model/mapping.p', 'rb'))
-    predict(args.file, mapping)
+    if len(sys.argv) > 1:
+        for i in sys.argv[1:]:
+            predict(i, mapping)
+    else:
+        print("predict.py: missing file operand")
+        print("usage: python3 predict.py [file1] ...")

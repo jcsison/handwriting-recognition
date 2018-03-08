@@ -22,9 +22,11 @@ def init_gui(model, mapping, width=400, height=400):
             if True not in mask:
                 return img
             coords = np.argwhere(mask)
-            x0, y0 = coords.min(axis=0)
-            x1, y1 = coords.max(axis=0) + 1
-            return img[x0 - padding:x1 + padding, y0 - padding:y1 + padding]
+            x0, y0 = coords.min(axis=0) - padding
+            x1, y1 = coords.max(axis=0) + 1 + padding
+            x0, y0 = x0 * (x0 > 0), y0 * (y0 > 0)
+            x1, y1 = x1 * (x1 > 0), y1 * (y1 > 0)
+            return img[x0:x1, y0:y1]
 
         def square(img, color=0):
             (x, y) = img.shape
@@ -35,14 +37,11 @@ def init_gui(model, mapping, width=400, height=400):
             return np.pad(img, padding, mode='constant', constant_values=color)
 
         img_c = image.crop(image.getbbox()).convert('L')
-        img_c = ImageOps.invert(img_c)
-        w, h = img_c.size
-        w, h = w // 2, h // 2
-        x, y = ndimage.measurements.center_of_mass(np.asarray(img_c))
-        img_t = img_c.transform(img_c.size, Image.AFFINE, (1, 0, y - h, 0, 1, x - w), fill=0)
-        img_t = np.asarray(img_t.convert('L'))
-        ret, img = cv2.threshold(img_t, 127, 255, cv2.THRESH_BINARY)
-        img = cv2.GaussianBlur(img, (1, 1), 0)
+        img = ImageOps.invert(img_c)
+        img = np.asarray(img)
+        ret, img = cv2.threshold(img, 127, 255, cv2.THRESH_BINARY)
+        img = cv2.GaussianBlur(img, (5, 5), 0)
+        ret, img = cv2.threshold(img, 20, 255, cv2.THRESH_BINARY)
         img = crop(img)
         img = square(img)
         return img
@@ -71,6 +70,7 @@ def init_gui(model, mapping, width=400, height=400):
 
     def show():
         img = process_image(image)
+        img = imresize(img, (28, 28))
         plt.imshow(img)
         plt.show()
 

@@ -18,17 +18,19 @@ Run the training script using:
 python3 train.py
 ```
 
-A model h5 and YAML file will be generated within the `model/` directory.
+A model h5, YAML, and Pickle file will be generated within the `model/` directory.
 
 ### Prediction
 Once the model has been created, a single handwritten character can be predicted by running:
 
 ``` bash
-python3 predict.py -f [file_path]
+python3 predict.py [file1] ...
 ```
 
+Note: multiple files can be predicted in one instance and a wildcard `*` can be used to process all files within a directory.
+
 ### Prediction GUI
-A Tkinter GUI has been created to test the model implementation more easily. This can be ran through the command:
+A Tkinter GUI has been created to test the model implementation more easily. This can be started with the command:
 
 ``` bash
 python3 draw_gui.py
@@ -38,8 +40,9 @@ python3 draw_gui.py
 - ~~GUI testing environment for live demo~~
 - ~~Train on byclass dataset (currently using balanced)~~
 - ~~Improve prediction accuracy (should improve after switching to byclass)~~
-- Tweak CNN training model (still learning how Keras models work)
-- Train using other learning algorithms
+- Compare byclass with other EMNIST datasets
+- Improve image processing
+- Train using other learning algorithms (if time permits)
     - SVM
     - Random forest
 - Image process strings of letters (if time permits)
