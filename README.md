@@ -38,7 +38,7 @@ python3 draw_gui.py
 
 ### To-do
 - ~~GUI testing environment for live demo~~
-- ~~Train on byclass dataset (currently using balanced)~~
+- ~~Train on byclass dataset~~
 - ~~Improve prediction accuracy (should improve after switching to byclass)~~
 - ~~Compare byclass with other EMNIST datasets~~
 - ~~Improve image preprocessing~~

@@ -66,7 +66,7 @@ def predict(file_path, mapping):
         img = cv2.medianBlur(img, 5)
         img = cv2.GaussianBlur(img, (5, 5), 0)
         img = cv2.bilateralFilter(img, 7, 100, 100)
-        ret, img = cv2.threshold(img, 0, 255, cv2.THRESH_BINARY+cv2.THRESH_OTSU)
+        ret, img = cv2.threshold(img, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
         if background_color(img) != 0:
             img = np.invert(img)
         img = crop(img)

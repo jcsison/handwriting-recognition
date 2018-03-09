@@ -44,8 +44,8 @@ def init_gui(model, mapping, width=400, height=400):
         img = np.asarray(img)
         img = cv2.medianBlur(img, 5)
         img = cv2.GaussianBlur(img, (5, 5), 0)
-        img = cv2.bilateralFilter(img, 9, 75, 75)
-        ret, img = cv2.threshold(img, 0, 255, cv2.THRESH_BINARY+cv2.THRESH_OTSU)
+        img = cv2.bilateralFilter(img, 7, 100, 100)
+        ret, img = cv2.threshold(img, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
         img = crop(img)
         img = square(img)
         return img
